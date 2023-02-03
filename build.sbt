@@ -43,6 +43,8 @@ lazy val commonSettings = Seq(
 
 lazy val SclapVersion = "1.3.6"
 lazy val ScaseVersion = "1.2.7"
+lazy val PulsarVersion = "2.9.0"
+lazy val LogbackVersion = "1.2.3"
 
 lazy val root: Project = project
   .in(file("."))
@@ -50,7 +52,9 @@ lazy val root: Project = project
   .settings(
     libraryDependencies ++= Seq(
       "io.jobial" %% "scase-pulsar" % ScaseVersion,
-      "io.jobial" %% "sclap" % SclapVersion
+      "io.jobial" %% "sclap" % SclapVersion,
+      "org.apache.pulsar" % "pulsar-client-admin" % PulsarVersion,
+      "ch.qos.logback" % "logback-classic" % LogbackVersion
     )
   )
 
