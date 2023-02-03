@@ -63,12 +63,17 @@ case class Topic(name: String) {
 
   def subscriptions(implicit admin: PulsarAdmin): IO[List[Subscription]] =
     IO(admin.topics().getSubscriptions(name).asScala.toList.map(Subscription(_, List(this))))
-
+  
   def stats(implicit admin: PulsarAdmin) =
     IO(admin.topics().getStats(name))
 }
 
-case class Subscription(name: String, topics: List[Topic])
+case class Subscription(name: String, topics: List[Topic]) {
+
+//  def stats(implicit admin: PulsarAdmin) =
+//    IO(admin.topics().getSt)
+
+}
 
 case class PulsarAdminContext(url: String = "http://localhost:8080", namespace: String = "public/default") {
 

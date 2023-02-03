@@ -7,10 +7,9 @@ import io.jobial.pulsar.admin.PulsarAdminUtils
 import io.jobial.sclap.CommandLineApp
 import org.apache.pulsar.client.admin.PulsarAdmin
 
-import java.time.LocalDateTime
 import java.time.LocalDateTime.now
-import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatter.ofPattern
+import scala.collection.JavaConverters._
 import scala.concurrent.duration.DurationInt
 
 object PulsarStat extends CommandLineApp with PulsarAdminUtils {
@@ -76,13 +75,22 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       outRate = stats.map(_.getMsgRateOut).sum
       msgThroughputIn = stats.map(_.getMsgThroughputIn).sum
       msgThroughputOut = stats.map(_.getMsgThroughputOut).sum
+      backlogSize = stats.map(_.getBacklogSize).sum
+      storageSize = stats.map(_.getStorageSize).sum
+      producers = stats.map(_.getPublishers.asScala).flatten
+      subStats = stats.map(_.getSubscriptions.asScala).flatten
+      consumers = subStats.flatMap(_._2.getConsumers.asScala)
     } yield StatLine(
       topics.size,
       subscriptions.size,
+      consumers.size,
+      producers.size,
       inRate,
       outRate,
       msgThroughputIn,
-      msgThroughputOut
+      msgThroughputOut,
+      backlogSize,
+      storageSize
     )
 
   def printStatLines(implicit admin: PulsarAdmin, context: PulsarAdminContext): IO[Unit] =
@@ -102,12 +110,31 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
     }
 }
 
-case class StatLine(topics: Int, subscriptions: Int, inRate: Double, outRate: Double, msgThroughputIn: Double, msgThroughputOut: Double) {
+case class StatLine(
+  topics: Int,
+  subscriptions: Int,
+  consumers: Int,
+  producers: Int,
+  inRate: Double,
+  outRate: Double,
+  msgThroughputIn: Double,
+  msgThroughputOut: Double,
+  backlogSize: Long,
+  storageSize: Long
+) {
 
-  def print = f"${ofPattern("yyyyMMdd-HHss").format(now)}%13s${topics}%8s${subscriptions}%8s${inRate}%11.2f${outRate}%11.2f${msgThroughputIn / 1024 / 1024}%11.2f${msgThroughputOut / 1024 / 1024}%11.2f"
+  def print =
+    f"${ofPattern("yyyyMMdd-HHmmss").format(now)}%15s${topics}%8s${subscriptions}%8s" +
+      f"${consumers}%8s${producers}%8s" +
+      f"${inRate}%11.2f${outRate}%11.2f" +
+      f"${msgThroughputIn / 1024 / 1024}%11.2f${msgThroughputOut / 1024 / 1024}%11.2f" +
+      f"${backlogSize / 1024 / 1024}%10d${storageSize / 1024 / 1024}%10d"
 }
 
 object StatLine {
-  def printHeader = f"""${"Timestamp"}%13s${"Topics"}%8s${"Subs"}%8s${"MsgRateIn"}%11s${"MsgRateOut"}%11s${"ThrptInMB"}%11s${"ThrptOutMB"}%11s"""
+  def printHeader =
+    f"${"Timestamp"}%15s${"Topics"}%8s${"Subs"}%8s${"Cons"}%8s${"Prods"}%8s${"MsgRateIn"}%11s" +
+      f"${"MsgRateOut"}%11s${"ThptInMB"}%11s${"ThrptOutMB"}%11s" +
+      f"${"BacklogMB"}%10s${"StorageMB"}%10s"
 }
 
