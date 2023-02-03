@@ -2,7 +2,7 @@ package io.jobial.pulsar.admin
 
 import cats.Parallel
 import cats.effect.IO
-import cats.effect.Resource
+import cats.effect.Resource.make
 import cats.implicits.catsSyntaxParallelSequence1
 import org.apache.pulsar.client.admin.PulsarAdmin
 
@@ -72,6 +72,7 @@ case class Subscription(name: String, topics: List[Topic])
 
 case class PulsarAdminContext(url: String = "http://localhost:8080", namespace: String = "public/default") {
 
-  def admin = Resource.make(IO(PulsarAdmin.builder.serviceHttpUrl(url).build))(admin => IO(admin.close))
+  def admin = 
+    make(IO(PulsarAdmin.builder.serviceHttpUrl(url).build))(admin => IO(admin.close))
 }
 

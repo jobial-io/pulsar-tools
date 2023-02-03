@@ -7,6 +7,10 @@ import io.jobial.pulsar.admin.PulsarAdminUtils
 import io.jobial.sclap.CommandLineApp
 import org.apache.pulsar.client.admin.PulsarAdmin
 
+import java.time.LocalDateTime
+import java.time.LocalDateTime.now
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatter.ofPattern
 import scala.concurrent.duration.DurationInt
 
 object PulsarStat extends CommandLineApp with PulsarAdminUtils {
@@ -100,10 +104,10 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
 
 case class StatLine(topics: Int, subscriptions: Int, inRate: Double, outRate: Double, msgThroughputIn: Double, msgThroughputOut: Double) {
 
-  def print = f"${topics}%8s${subscriptions}%8s${inRate}%11.2f${outRate}%11.2f${msgThroughputIn / 1024 / 1024}%11.2f${msgThroughputOut / 1024 / 1024}%11.2f"
+  def print = f"${ofPattern("yyyyMMdd-HHss").format(now)}%13s${topics}%8s${subscriptions}%8s${inRate}%11.2f${outRate}%11.2f${msgThroughputIn / 1024 / 1024}%11.2f${msgThroughputOut / 1024 / 1024}%11.2f"
 }
 
 object StatLine {
-  def printHeader = f"""${"Topics"}%8s${"Subs"}%8s${"MsgRateIn"}%11s${"MsgRateOut"}%11s${"ThrptInMB"}%11s${"ThrptOutMB"}%11s"""
+  def printHeader = f"""${"Timestamp"}%13s${"Topics"}%8s${"Subs"}%8s${"MsgRateIn"}%11s${"MsgRateOut"}%11s${"ThrptInMB"}%11s${"ThrptOutMB"}%11s"""
 }
 
