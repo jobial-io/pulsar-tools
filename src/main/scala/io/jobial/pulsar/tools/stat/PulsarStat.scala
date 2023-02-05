@@ -148,7 +148,6 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
     }
 }
 
-
 case class StatLine(
   topics: Int,
   subscriptions: Int,
@@ -162,7 +161,7 @@ case class StatLine(
   storageSize: Long
 ) {
 
-  def print =
+  val print =
     f"${ofPattern("yyyyMMdd-HHmmss").format(now)}%15s${topics}%8s${subscriptions}%8s" +
       f"${consumers}%8s${producers}%8s" +
       f"${inRate}%11.2f${outRate}%11.2f" +
@@ -171,7 +170,7 @@ case class StatLine(
 }
 
 object StatLine {
-  def printHeader =
+  val printHeader =
     f"${"Timestamp"}%15s${"Topic"}%8s${"Subs"}%8s${"Cons"}%8s${"Prod"}%8s${"MsgRateIn"}%11s" +
       f"${"MsgRateOut"}%11s${"TputInMB"}%11s${"TputOutMB"}%11s" +
       f"${"BacklogMB"}%10s${"StorageMB"}%10s"
