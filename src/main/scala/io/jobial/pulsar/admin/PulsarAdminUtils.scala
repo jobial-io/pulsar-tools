@@ -35,6 +35,14 @@ trait PulsarAdminUtils {
       subscriptions <- subscriptions(topics)
     } yield subscriptions
 
+  def consumers(namespace: String)(implicit admin: PulsarAdmin, parallel: Parallel[IO]) =
+    for {
+      topics <- topics(namespace)
+      stats <- topics.map(_.stats).parSequence
+      subStats = stats.map(_.getSubscriptions.asScala).flatten
+      consumers = subStats.flatMap(_._2.getConsumers.asScala)
+    } yield consumers
+
   def subscriptions(topics: List[Topic])(implicit admin: PulsarAdmin, parallel: Parallel[IO]): IO[List[Subscription]] =
     for {
       subscriptions <- topics.map(_.subscriptions).parSequence

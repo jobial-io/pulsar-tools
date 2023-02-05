@@ -7,10 +7,13 @@ import io.jobial.pulsar.admin.PulsarAdminUtils
 import io.jobial.sclap.CommandLineApp
 import org.apache.pulsar.client.admin.PulsarAdmin
 
+import java.net.InetAddress
+import java.time.Instant.ofEpochMilli
 import java.time.LocalDateTime.now
 import java.time.format.DateTimeFormatter.ofPattern
 import scala.collection.JavaConverters._
 import scala.concurrent.duration.DurationInt
+import scala.util.Try
 
 object PulsarStat extends CommandLineApp with PulsarAdminUtils {
 
@@ -23,11 +26,13 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       listNamespaces <- listNamespaces(context)
       listTopics <- listTopics(context)
       listSubscriptions <- listSubscriptions(context)
+      listConsumers <- listConsumers(context)
     } yield
       listTenants orElse
         listNamespaces orElse
         listTopics orElse
         listSubscriptions orElse
+        listConsumers orElse
         printHeaderAndStatLines(context)
 
   def listTenants(implicit context: PulsarAdminContext) =
@@ -65,6 +70,39 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
         }
       } yield subscriptions.sortBy(_.name).map(println)
     }
+
+  def listConsumers(implicit context: PulsarAdminContext) =
+    subcommand("consumers") {
+      for {
+        consumers <- context.admin.use { implicit admin =>
+          consumers(context.namespace)
+        }
+        lines <- {
+          for {
+            consumer <- consumers.sortBy(_.getConsumerName)
+          } yield IO {
+            val address = consumer.getAddress
+            val hostname = resolveHostname(address.substring(1, address.indexOf(':')))
+            val port = address.substring(address.indexOf(':') + 1)
+            val lastConsumedTimestamp =
+              if (consumer.getLastConsumedTimestamp > 0)
+                ofEpochMilli(consumer.getLastConsumedTimestamp)
+              else
+                ""
+            val consumerName = if (consumer.getConsumerName === "") "<unnamed>" else consumer.getConsumerName
+            val msgOutCounter = consumer.getMsgOutCounter
+
+            f"${consumerName}%10s${hostname.map(_ + s":$port").getOrElse(address)}%40s${lastConsumedTimestamp}%25s${msgOutCounter}%12d"
+          }
+        }.parSequence
+        _ <- IO(println(f"${"Name"}%10s${"Address"}%40s${"LastConsumed"}%25s${"MsgOutCount"}%12s"))
+      } yield for {
+        l <- lines
+      } yield println(l)
+    }
+
+  def resolveHostname(address: String) =
+    Try(InetAddress.getByName(address)).map(_.getHostName).toOption
 
   def statLine(implicit admin: PulsarAdmin, context: PulsarAdminContext) =
     for {
@@ -110,6 +148,7 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
     }
 }
 
+
 case class StatLine(
   topics: Int,
   subscriptions: Int,
@@ -133,8 +172,8 @@ case class StatLine(
 
 object StatLine {
   def printHeader =
-    f"${"Timestamp"}%15s${"Topics"}%8s${"Subs"}%8s${"Cons"}%8s${"Prods"}%8s${"MsgRateIn"}%11s" +
-      f"${"MsgRateOut"}%11s${"ThptInMB"}%11s${"ThrptOutMB"}%11s" +
+    f"${"Timestamp"}%15s${"Topic"}%8s${"Subs"}%8s${"Cons"}%8s${"Prod"}%8s${"MsgRateIn"}%11s" +
+      f"${"MsgRateOut"}%11s${"TputInMB"}%11s${"TputOutMB"}%11s" +
       f"${"BacklogMB"}%10s${"StorageMB"}%10s"
 }
 

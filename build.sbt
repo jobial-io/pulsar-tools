@@ -52,6 +52,7 @@ lazy val root: Project = project
   .settings(
     libraryDependencies ++= Seq(
       "io.jobial" %% "scase-pulsar" % ScaseVersion,
+      "io.jobial" %% "scase-core" % ScaseVersion % "compile->compile;test->test",
       "io.jobial" %% "sclap" % SclapVersion,
       "org.apache.pulsar" % "pulsar-client-admin" % PulsarVersion,
       "ch.qos.logback" % "logback-classic" % LogbackVersion
