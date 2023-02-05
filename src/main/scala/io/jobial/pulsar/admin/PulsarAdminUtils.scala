@@ -43,6 +43,13 @@ trait PulsarAdminUtils {
       consumers = subStats.flatMap(_._2.getConsumers.asScala)
     } yield consumers
 
+  def publishers(namespace: String)(implicit admin: PulsarAdmin, parallel: Parallel[IO]) =
+    for {
+      topics <- topics(namespace)
+      stats <- topics.map(_.stats).parSequence
+      publishers = stats.map(_.getPublishers.asScala).flatten
+    } yield publishers
+
   def subscriptions(topics: List[Topic])(implicit admin: PulsarAdmin, parallel: Parallel[IO]): IO[List[Subscription]] =
     for {
       subscriptions <- topics.map(_.subscriptions).parSequence

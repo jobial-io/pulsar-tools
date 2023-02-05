@@ -27,12 +27,16 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       listTopics <- listTopics(context)
       listSubscriptions <- listSubscriptions(context)
       listConsumers <- listConsumers(context)
+      listProducers <- listProducers(context)
+      stats <- stats(context)
     } yield
-      listTenants orElse
+      stats orElse
+        listTenants orElse
         listNamespaces orElse
         listTopics orElse
         listSubscriptions orElse
         listConsumers orElse
+        listProducers orElse
         printHeaderAndStatLines(context)
 
   def listTenants(implicit context: PulsarAdminContext) =
@@ -99,6 +103,37 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       } yield for {
         l <- lines
       } yield println(l)
+    }
+
+  def listProducers(implicit context: PulsarAdminContext) =
+    subcommand("producers") {
+      for {
+        publishers <- context.admin.use { implicit admin =>
+          publishers(context.namespace)
+        }
+        lines <- {
+          for {
+            publisher <- publishers.sortBy(_.getProducerName)
+          } yield IO {
+            val address = publisher.getAddress
+            val hostname = resolveHostname(address.substring(1, address.indexOf(':')))
+            val port = address.substring(address.indexOf(':') + 1)
+            val connectedSince = publisher.getConnectedSince.substring(0, publisher.getConnectedSince.indexOf('.'))
+            val producerName = if (publisher.getProducerName === "") "<unnamed>" else publisher.getProducerName
+            val msgRateIn = publisher.getMsgRateIn
+
+            f"${producerName}%45s${hostname.map(_ + s":$port").getOrElse(address)}%40s${connectedSince}%20s${msgRateIn}%10.2f"
+          }
+        }.parSequence
+        _ <- IO(println(f"${"Name"}%45s${"Address"}%40s${"Since"}%20s${"MsgRateIn"}%10s"))
+      } yield for {
+        l <- lines
+      } yield println(l)
+    }
+
+  def stats(implicit context: PulsarAdminContext) =
+    subcommand("stats").description("(default)") {
+      printHeaderAndStatLines
     }
 
   def resolveHostname(address: String) =
