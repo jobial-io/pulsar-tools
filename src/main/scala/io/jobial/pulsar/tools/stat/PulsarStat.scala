@@ -157,9 +157,9 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       msgThroughputOut = stats.map(_.getMsgThroughputOut).sum
       backlogSize = stats.map(_.getBacklogSize).sum
       storageSize = stats.map(_.getStorageSize).sum
-      producers = stats.map(_.getPublishers.asScala).flatten
-      subStats = stats.map(_.getSubscriptions.asScala).flatten
-      consumers = subStats.flatMap(_._2.getConsumers.asScala)
+      producers = stats.map(_.getPublishers.asScala.toList).flatten
+      subStats = stats.map(_.getSubscriptions.asScala.toList).flatten
+      consumers = subStats.flatMap(_._2.getConsumers.asScala.toList)
     } yield StatLine(
       topics.size,
       subscriptions.size,

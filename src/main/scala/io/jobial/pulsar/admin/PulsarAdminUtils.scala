@@ -3,7 +3,7 @@ package io.jobial.pulsar.admin
 import cats.Parallel
 import cats.effect.IO
 import cats.effect.Resource.make
-import cats.implicits.catsSyntaxParallelSequence1
+import cats.implicits._
 import org.apache.pulsar.client.admin.PulsarAdmin
 
 import scala.collection.JavaConverters._
@@ -24,7 +24,7 @@ trait PulsarAdminUtils {
       namespaces <- namespaces
       topics <- {
         for {
-          namespace <- namespaces if namespacePattern.r.matches(namespace.name)
+          namespace <- namespaces if namespacePattern.r.pattern.matcher(namespace.name).matches
         } yield namespace.topics
       }.parSequence.map(_.flatten)
     } yield topics
@@ -39,15 +39,15 @@ trait PulsarAdminUtils {
     for {
       topics <- topics(namespace)
       stats <- topics.map(_.stats).parSequence
-      subStats = stats.map(_.getSubscriptions.asScala).flatten
-      consumers = subStats.flatMap(_._2.getConsumers.asScala)
+      subStats = stats.map(_.getSubscriptions.asScala.toList).flatten
+      consumers = subStats.flatMap(_._2.getConsumers.asScala.toList)
     } yield consumers
 
   def publishers(namespace: String)(implicit admin: PulsarAdmin, parallel: Parallel[IO]) =
     for {
       topics <- topics(namespace)
       stats <- topics.map(_.stats).parSequence
-      publishers = stats.map(_.getPublishers.asScala).flatten
+      publishers = stats.map(_.getPublishers.asScala.toList).flatten
     } yield publishers
 
   def subscriptions(topics: List[Topic])(implicit admin: PulsarAdmin, parallel: Parallel[IO]): IO[List[Subscription]] =
