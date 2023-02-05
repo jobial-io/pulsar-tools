@@ -72,7 +72,14 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
         subscriptions <- context.admin.use { implicit admin =>
           subscriptions(context.namespace)
         }
-      } yield subscriptions.sortBy(_.name).map(println)
+        _ <- IO(println(f"${"Name"}%46s${"Topics"}%7s"))
+      } yield for {
+        s <- subscriptions.sortBy(_.name)
+      } yield {
+        val name = s.name
+        val topics = s.topics.map(_.name).sorted.mkString(" ")
+        println(f"${name}%46s ${topics}")
+      }
     }
 
   def listConsumers(implicit context: PulsarAdminContext) =
