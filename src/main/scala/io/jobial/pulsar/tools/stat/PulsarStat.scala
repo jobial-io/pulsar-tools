@@ -17,10 +17,12 @@ import scala.util.Try
 
 object PulsarStat extends CommandLineApp with PulsarAdminUtils {
 
-  def run =
+  def run = run(PulsarAdminContext().url, ".*")
+  
+  def run(defaultUrl: String, defaultNamespace: String) =
     for {
-      url <- urlOpt
-      namespace <- namespaceOpt
+      url <- opt[String]("url", "u").default(defaultUrl)
+      namespace <- opt[String]("namespace", "n").default(defaultNamespace)
       context = PulsarAdminContext(url, namespace)
       listTenants <- listTenants(context)
       listNamespaces <- listNamespaces(context)
@@ -39,10 +41,6 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
         listProducers orElse
         printHeaderAndStatLines(context)
 
-  lazy val urlOpt = opt[String]("url", "u").default(PulsarAdminContext().url)
-  
-  lazy val namespaceOpt = opt[String]("namespace", "n").default(".*")
-  
   def listTenants(implicit context: PulsarAdminContext) =
     subcommand("tenants") {
       for {
