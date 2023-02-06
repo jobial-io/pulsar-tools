@@ -17,13 +17,16 @@ import scala.util.Try
 
 object PulsarStat extends CommandLineApp with PulsarAdminUtils {
 
-  def run = run(PulsarAdminContext().url, ".*")
-  
-  def run(defaultUrl: String, defaultNamespace: String) =
+  def run =
     for {
-      url <- opt[String]("url", "u").default(defaultUrl)
-      namespace <- opt[String]("namespace", "n").default(defaultNamespace)
+      url <- opt[String]("url", "u").default(PulsarAdminContext().url)
+      namespace <- opt[String]("namespace", "n").default(".*")
       context = PulsarAdminContext(url, namespace)
+      r <- run(context)
+    } yield r
+  
+  def run(context: PulsarAdminContext) =
+    for {
       listTenants <- listTenants(context)
       listNamespaces <- listNamespaces(context)
       listTopics <- listTopics(context)
