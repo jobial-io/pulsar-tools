@@ -13,20 +13,16 @@ trait PulsarAdminUtils {
   def tenants(implicit admin: PulsarAdmin) =
     IO(admin.tenants().getTenants.asScala.toList.map(Tenant(_)))
 
-  def namespaces(implicit admin: PulsarAdmin, parallel: Parallel[IO]) =
+  def namespaces(namespacePattern: String)(implicit admin: PulsarAdmin, parallel: Parallel[IO]) =
     for {
       tenants <- tenants
       namespaces <- tenants.map(_.namespaces).parSequence.map(_.flatten)
-    } yield namespaces
+    } yield namespaces.filter(namespace => namespacePattern.r.pattern.matcher(namespace.name).matches).sortBy(_.name)
 
   def topics(namespacePattern: String)(implicit admin: PulsarAdmin, parallel: Parallel[IO]) =
     for {
-      namespaces <- namespaces
-      topics <- {
-        for {
-          namespace <- namespaces if namespacePattern.r.pattern.matcher(namespace.name).matches
-        } yield namespace.topics
-      }.parSequence.map(_.flatten)
+      namespaces <- namespaces(namespacePattern)
+      topics <- namespaces.map(_.topics).parSequence.map(_.flatten)
     } yield topics
 
   def subscriptions(namespace: String)(implicit admin: PulsarAdmin, parallel: Parallel[IO]): IO[List[Subscription]] =

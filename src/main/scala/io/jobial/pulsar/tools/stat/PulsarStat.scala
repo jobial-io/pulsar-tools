@@ -57,7 +57,7 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
     subcommand("namespaces") {
       for {
         namespaces <- context.admin.use { implicit admin =>
-          namespaces
+          namespaces(context.namespace)
         }
       } yield namespaces.map(_.name).sorted.map(println)
     }
@@ -189,6 +189,10 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
   def printHeaderAndStatLines(implicit context: PulsarAdminContext): IO[Unit] =
     context.admin.use { implicit admin =>
       for {
+        namespaces <- namespaces(context.namespace)
+        _ <- IO(println(s"Showing statistics for ${context.url} and namespace pattern ${context.namespace}"))
+        _ <- IO(println("Matching namespaces:"))
+        _ <- IO(println(namespaces.map(_.name).mkString("", "\n", "\n")))
         _ <- IO(println(StatLine.printHeader))
         _ <- printStatLines
       } yield ()
