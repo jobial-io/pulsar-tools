@@ -15,13 +15,14 @@ name := "pulsar-tools"
 ThisBuild / organization := "io.jobial"
 ThisBuild / scalaVersion := "2.13.8"
 ThisBuild / crossScalaVersions := Seq("2.11.12", "2.12.15", "2.13.8")
-ThisBuild / version := "0.0.4"
+ThisBuild / version := "0.0.5"
 ThisBuild / scalacOptions += "-target:jvm-1.8"
 ThisBuild / javacOptions ++= Seq("-source", "11", "-target", "11")
 ThisBuild / Test / packageBin / publishArtifact := true
 ThisBuild / Test / packageSrc / publishArtifact := true
 ThisBuild / Test / packageDoc / publishArtifact := true
 ThisBuild / resolvers += "Mulesoft" at "https://repository.mulesoft.org/nexus/content/repositories/public/"
+Compile / packageBin / mappings ~= { _.filter(!_._1.getName.endsWith("logback.xml")) }
 
 import sbt.Keys.{description, libraryDependencies, publishConfiguration}
 import sbt.addCompilerPlugin
