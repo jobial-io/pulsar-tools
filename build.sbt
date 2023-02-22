@@ -22,7 +22,9 @@ ThisBuild / Test / packageBin / publishArtifact := true
 ThisBuild / Test / packageSrc / publishArtifact := true
 ThisBuild / Test / packageDoc / publishArtifact := true
 ThisBuild / resolvers += "Mulesoft" at "https://repository.mulesoft.org/nexus/content/repositories/public/"
-Compile / packageBin / mappings ~= { _.filter(!_._1.getName.endsWith("logback.xml")) }
+Compile / packageBin / mappings ~= {
+  _.filter(!_._1.getName.endsWith("logback.xml"))
+}
 
 import sbt.Keys.{description, libraryDependencies, publishConfiguration}
 import sbt.addCompilerPlugin
@@ -54,9 +56,11 @@ lazy val root: Project = project
     libraryDependencies ++= Seq(
       "io.jobial" %% "scase-pulsar" % ScaseVersion,
       "io.jobial" %% "scase-core" % ScaseVersion % "compile->compile;test->test",
+      "io.jobial" %% "scase-tibco-rv" % ScaseVersion,
       "io.jobial" %% "sclap" % SclapVersion,
       "org.apache.pulsar" % "pulsar-client-admin" % PulsarVersion,
       "ch.qos.logback" % "logback-classic" % LogbackVersion
-    )
+    ),
+    Compile / unmanagedJars ++= Seq(file(sys.env.get("TIBCO_RV_ROOT").getOrElse(sys.props("tibco.rv.root")) + "/lib/tibrvj.jar"))
   )
 
