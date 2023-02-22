@@ -178,13 +178,17 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       storageSize
     )
 
-  def printStatLines(implicit admin: PulsarAdmin, context: PulsarAdminContext): IO[Unit] =
+  def printStatLines(implicit admin: PulsarAdmin, context: PulsarAdminContext): IO[Unit] = {
     for {
       line <- statLine
       _ <- IO(println(line.print))
       _ <- sleep(15.seconds)
       _ <- printStatLines
     } yield ()
+  } handleErrorWith { t =>
+      sleep(15.seconds) >>
+        printStatLines
+  }
 
   def printHeaderAndStatLines(implicit context: PulsarAdminContext) =
     context.admin.use { implicit admin =>
