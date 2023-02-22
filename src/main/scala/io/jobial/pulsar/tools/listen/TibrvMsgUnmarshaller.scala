@@ -7,5 +7,5 @@ import java.io.InputStream
 class TibrvMsgUnmarshaller extends BinaryFormatUnmarshaller[String] {
   
   def unmarshalFromInputStream(in: InputStream) =
-    io.jobial.scase.marshalling.tibrv.raw.tibrvMsgRawUnmarshaller.unmarshalFromInputStream(in).map(_.toString)
+    io.jobial.scase.marshalling.tibrv.raw.tibrvMsgRawUnmarshaller.unmarshalFromInputStream(in).right.map(_.toString)
 }
