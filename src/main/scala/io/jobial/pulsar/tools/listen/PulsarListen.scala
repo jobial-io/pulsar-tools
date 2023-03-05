@@ -10,7 +10,6 @@ import io.jobial.scase.pulsar.PulsarServiceConfiguration.handler
 import io.jobial.sclap.CommandLineApp
 import org.apache.pulsar.client.api.Message
 
-import java.time.Instant
 import java.time.Instant.ofEpochMilli
 import scala.io.AnsiColor._
 import scala.util.Try
@@ -21,12 +20,14 @@ object PulsarListen extends CommandLineApp {
     for {
       host <- opt[String]("host", "H").default(PulsarListenContext().host)
       port <- opt[Int]("port", "p").default(PulsarListenContext().port)
+      messageSizeLimit <- opt[Int]("message-size-limit", "s").
+        description("Truncate message above this size")
       topicPattern <- opt[String]("topic", "t").default("public/default/.*")
-      context = PulsarListenContext(host, port, topicPattern)
+      context = PulsarListenContext(host, port, topicPattern, messageSizeLimit)
       r <- run(context)
     } yield r
 
-  def run(context: PulsarListenContext) = command {
+  def run(implicit context: PulsarListenContext) = command {
     for {
       config <- IO(handler[Array[Byte]](context.topicPattern.r, None, None, s"pulsar-listen-${uuid}"))
       service <- {
@@ -40,19 +41,21 @@ object PulsarListen extends CommandLineApp {
   val tibrvUnmarshaller = Try(Class.forName("io.jobial.pulsar.tools.listen.TibrvMsgUnmarshaller")
     .getDeclaredConstructor().newInstance().asInstanceOf[Unmarshaller[String]]).toEither
 
-  val messageHandler = MessageHandler[IO, Array[Byte]](implicit messageContext => { message =>
+  def messageHandler(implicit context: PulsarListenContext) = MessageHandler[IO, Array[Byte]](implicit messageContext => { message =>
     for {
       pulsarMessage <- messageContext.receiveResult().underlyingMessage[Message[_]]
       _ <- IO {
         val result = tibrvUnmarshaller.flatMap(_.unmarshal(message))
           .getOrElse(Try(new String(message, "UTF-8").replaceAll("\\P{Print}", ".")).toEither).toString
-        println(s"${YELLOW}${ofEpochMilli(pulsarMessage.getPublishTime)} ${GREEN}${pulsarMessage.getTopicName}${RESET} ${result.take(200)}${if (result.size > 200) "..." else ""}")
+        val messageSizeLimit = context.messageSizeLimit.getOrElse(Int.MaxValue) 
+        println(s"${YELLOW}${ofEpochMilli(pulsarMessage.getPublishTime)} ${GREEN}${pulsarMessage.getTopicName}${RESET} ${result.take(messageSizeLimit)}${if (result.size > messageSizeLimit) "..." else ""}")
       }
     } yield ()
   })
 }
 
-case class PulsarListenContext(host: String = "localhost", port: Int = 6650, topicPattern: String = ".*") {
+case class PulsarListenContext(host: String = "localhost", port: Int = 6650, topicPattern: String = ".*",
+  messageSizeLimit: Option[Int] = None) {
 
   def pulsarContext = PulsarContext(host, port)
 }
