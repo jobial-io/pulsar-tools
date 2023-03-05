@@ -10,6 +10,9 @@ import io.jobial.scase.pulsar.PulsarServiceConfiguration.handler
 import io.jobial.sclap.CommandLineApp
 import org.apache.pulsar.client.api.Message
 
+import java.time.Instant
+import java.time.Instant.ofEpochMilli
+import scala.io.AnsiColor._
 import scala.util.Try
 
 object PulsarListen extends CommandLineApp {
@@ -38,14 +41,14 @@ object PulsarListen extends CommandLineApp {
     .getDeclaredConstructor().newInstance().asInstanceOf[Unmarshaller[String]]).toEither
 
   val messageHandler = MessageHandler[IO, Array[Byte]](implicit messageContext => { message =>
-      for {
-        pulsarMessage <- messageContext.receiveResult().underlyingMessage[Message[_]]
-        _ <- IO {
-          val result = tibrvUnmarshaller.flatMap(_.unmarshal(message))
-            .getOrElse(Try(new String(message, "UTF-8").replaceAll("\\P{Print}", ".")).toEither).toString
-          println(s"${pulsarMessage.getTopicName} ${result.take(200)}")
-        }
-      } yield ()
+    for {
+      pulsarMessage <- messageContext.receiveResult().underlyingMessage[Message[_]]
+      _ <- IO {
+        val result = tibrvUnmarshaller.flatMap(_.unmarshal(message))
+          .getOrElse(Try(new String(message, "UTF-8").replaceAll("\\P{Print}", ".")).toEither).toString
+        println(s"${YELLOW}${ofEpochMilli(pulsarMessage.getPublishTime)} ${GREEN}${pulsarMessage.getTopicName}${RESET} ${result.take(200)}${if (result.size > 200) "..." else ""}")
+      }
+    } yield ()
   })
 }
 

@@ -25,15 +25,15 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       r <- run(context)
     } yield r
 
-  def run(context: PulsarAdminContext) =
+  def run(implicit context: PulsarAdminContext) =
     for {
-      listTenants <- listTenants(context)
-      listNamespaces <- listNamespaces(context)
-      listTopics <- listTopics(context)
-      listSubscriptions <- listSubscriptions(context)
-      listConsumers <- listConsumers(context)
-      listProducers <- listProducers(context)
-      stats <- stats(context)
+      listTenants <- listTenants
+      listNamespaces <- listNamespaces
+      listTopics <- listTopics
+      listSubscriptions <- listSubscriptions
+      listConsumers <- listConsumers
+      listProducers <- listProducers
+      stats <- stats
     } yield
       stats orElse
         listTenants orElse
@@ -42,7 +42,7 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
         listSubscriptions orElse
         listConsumers orElse
         listProducers orElse
-        printHeaderAndStatLines(context)
+        printHeaderAndStatLines
 
   def listTenants(implicit context: PulsarAdminContext) =
     subcommand("tenants") {
@@ -189,8 +189,8 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
       _ <- printStatLines
     } yield ()
   } handleErrorWith { t =>
-      sleep(15.seconds) >>
-        printStatLines
+    sleep(15.seconds) >>
+      printStatLines
   }
 
   def printHeaderAndStatLines(implicit context: PulsarAdminContext) =
@@ -199,8 +199,7 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
         namespaces <- namespaces(context.namespace)
         _ <- if (namespaces.size === 1 && namespaces.head.name === context.namespace) IO {
           println(s"Showing statistics for ${context.url} and namespace ${context.namespace}")
-        }
-        else IO {
+        } else IO {
           println(s"Showing statistics for ${context.url} and namespace pattern ${context.namespace}")
           println("Matching namespaces:")
           println(namespaces.map(_.name).mkString("", "\n", "\n"))
