@@ -68,9 +68,10 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
         for {
           topics <- topics(context.namespace)
           stats <- topics.map(_.stats).parSequence
+          _ <- IO(println(f"${"Name"}%50s ${"BacklogMB"}%10s"))
         } yield for {
           (topic, stat) <- topics.zip(stats).sortBy(_._1.name)
-        } yield println(f"${topic.name} ${stat.getBacklogSize.toDouble / 1024 / 1024}%10.2f")
+        } yield println(f"${topic.name}%50s ${stat.getBacklogSize.toDouble / 1024 / 1024}%10.2f")
       }
     }
 
