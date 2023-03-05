@@ -64,11 +64,14 @@ object PulsarStat extends CommandLineApp with PulsarAdminUtils {
 
   def listTopics(implicit context: PulsarAdminContext) =
     subcommand("topics") {
-      for {
-        topics <- context.admin.use { implicit admin =>
-          topics(context.namespace)
-        }
-      } yield topics.map(_.name).sorted.map(println)
+      context.admin.use { implicit admin =>
+        for {
+          topics <- topics(context.namespace)
+          stats <- topics.map(_.stats).parSequence
+        } yield for {
+          (topic, stat) <- topics.zip(stats).sortBy(_._1.name)
+        } yield println(f"${topic.name} ${stat.getBacklogSize.toDouble / 1024 / 1024}%10.2f")
+      }
     }
 
   def listSubscriptions(implicit context: PulsarAdminContext) =
